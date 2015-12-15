@@ -1,0 +1,32 @@
+{
+  "name": "js-object-updater",
+  "version": "1.0.0",
+  "description": "Deep update JS Objects. Set, unset, push, pull at a deep path in a JS hash (or an array)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mindgreppers/js-object-updater.git"
+  },
+  "keywords": [
+    "javascript",
+    "js",
+    "update",
+    "push",
+    "pull",
+    "set",
+    "unset",
+    "deep"
+  ],
+  "author": "Master Silv3r",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/Mindgreppers/js-object-updater/issues"
+  },
+  "homepage": "https://github.com/Mindgreppers/js-object-updater#readme",
+  "dependencies": {
+    "lodash": "^3.10.1"
+  }
+}
