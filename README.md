@@ -3,7 +3,7 @@ Set, unset, push, pull at a deep path in a JS hash (or an array)
 
 Updates documents in memory based on passed instructions. Here is an example
 
-'''
+```Javascript
 var updater = require('js-object-updater')
 updater.update(doc, 
 
@@ -83,4 +83,4 @@ updater.update(doc,
 
   }
 )
-'''
+```
