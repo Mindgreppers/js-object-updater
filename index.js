@@ -127,7 +127,7 @@ var unset = function(doc,params) {
   if (params._path) {//is array of keys (path) to traverse depth wise in the doc
 
     var keys = params._path
-    var nested = get.last_parent(doc, keys, force)
+    var nested = get.last_parent(doc, keys)
     var lastKey = keys[keys.length - 1].key || keys[keys.length -1]
     delete nested[lastKey]
 
