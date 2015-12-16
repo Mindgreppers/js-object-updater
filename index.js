@@ -157,21 +157,20 @@ var pull = function(doc,params) {
       return
     }
     if (params._value) {//Push the single element
-
-      _.remove(nested[lastKey], params._value)
+      nested[lastKey] = _.without(nested[lastKey], params._value)
     }
     else if (params._values) {//Push the array of elements
       _.each(params._values, function(value) {
-        _.remove(nested[lastKey], value)
+        nested[lastKey] = _.without(nested[lastKey], value)
       })
     }
   } else { //These are single depth keys/attrs to be set in the doc
     _.each(_.keys(params), function(field) {
       if (!_.isArray(params[field])) {
-        _.remove(doc[field], params[field]) 
+        doc[field] = _.wihtout(doc[field], params[field]) 
       } else {
         _.each(params[field], function(value) {
-          _.remove(doc[field], value)
+          doc[field] = _.without(doc[field], value)
         })
       }
     })
@@ -235,11 +234,11 @@ module.exports.unset = unset
 if (require.main === module) {
   console.log(
     JSON.stringify(
-      unset(
-        [{a: 3,b: 4},{c: 3,b: 5,d: {f: [{a: 2}, {a: 3,b: {v: 2}}]}}],
+      pull(
+        [{a: 3,b: 4},{c: 3,b: 5,d: {f: ['1', '2']}}],
         {
           _path: [{b: 5}, 'd', 'f'],
-          _values: [{a: 3}, {a:2}]
+          _value: ['2']
         }
       )
     )
