@@ -177,14 +177,19 @@ var pull = function(doc,params) {
   }
   return doc
 }
+
+function addToSet(doc, params, force) {
+  return push(doc, params, force, true)
+}
+
 /**
  * @param doc the doc to be updated
  * @param params Of three kinds
- *  {_path,value} //The value to be ushed at nested path
+ *  {_path,value} //The value to be pushed at nested path
  *  {_path,values}//Each value in values is pushed
- *  {attrs}//Key value pairs to be directly set
+ *  {attrs}//Key value pairs to be pushed. If vals are arrays, they will be concatenated. The keys should be at top level of doc
  */
-var push = function(doc,params,force) {
+var push = function(doc,params,force, setUnique) {
   if (params._path) {
     var keys = params._path
     var nested = get.last_parent(doc,keys,force)
@@ -196,50 +201,84 @@ var push = function(doc,params,force) {
     }
 
     if (params._value) {//Push the single element
-
+      if (setUnique && find(nested[lastKey], params._value)) {
+        return doc//Don't do anything since value exists 
+      }
       nested[lastKey].push(params._value)
     }
     else if (params._values) {//Push the array of elements
       for (var i in params._values) {
+        if (setUnique && find(nested[lastKey], params._values[i])) {
+          continue //Don't do anything since value exists 
+        }
         nested[lastKey].push(params._values[i])
       }
     }
   } else { //These are single depth keys/attrs to be set in the doc
-    pushAttrs(doc,params)
+    pushAttrs(doc,params, setUnique)
   }
   return doc
 }
 
-var pushAttrs = function(doc, attrs) {
+var pushAttrs = function(doc, attrs, setUnique) {
   var keys = Object.keys(attrs)
+
   for (var i in keys) {
+    var key = keys[i]
 
-    if (!doc[keys[i]]) {
-
-      doc[keys[i]] = []
+    if (!doc[key]) {
+      doc[key] = []
     }
-    if (!_.isArray(attrs[keys[i]])) {
-      doc[keys[i]].push(attrs[keys[i]])
+
+    if (!_.isArray(doc[key])) {
+      doc[key] = [doc[key]]
+    }
+
+    if (!_.isArray(attrs[key])) {
+
+      if (setUnique && find(doc[key], attrs[key])) {
+        return doc//Don't do anything since value exists 
+      }
+      doc[key].push(attrs[key])
+
     } else {
-      doc[keys[i]] = doc[keys[i]].concat(attrs[keys[i]])
+
+      for (var j in attrs[key]) {
+        if (setUnique && find(doc[key], attrs[key][j])) {
+          continue //Don't do anything since value exists 
+        }
+        doc[key].push(attrs[key][j])
+      }
     }
   }
 }
+
+function find(arr, element) {
+  if (_.isObject(element)) {
+    return _.find(arr, element)
+  } else {
+    return arr.indexOf(element) > -1
+  }
+}
+
 //EXPORTS
 module.exports.push = push
+module.exports.addToSet = addToSet
 module.exports.set = set
 module.exports.pull = pull
 module.exports.unset = unset
 //END OF EXPORTS
+
 if (require.main === module) {
   console.log(
     JSON.stringify(
-      pull(
-        [{a: 3,b: 4},{c: 3,b: 5,d: {f: ['1', '2']}}],
+      push(
+        [{a: 3,b: 4, x: 6},{c: 3,b: 5,d: {f: ['1', '2']}}],
         {
-          _path: [{b: 5}, 'd', 'f'],
-          _value: ['2']
-        }
+            _path: [{b:5}, 'd', 'f'],
+            _values: ['2', '4', '1'] 
+        },
+        true,true
       )
     )
   )

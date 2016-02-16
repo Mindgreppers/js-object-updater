@@ -1,6 +1,6 @@
 {
   "name": "js-object-updater",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Deep update JS Objects. Set, unset, push, pull at a deep path in a JS hash (or an array)",
   "main": "index.js",
   "scripts": {
