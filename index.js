@@ -189,8 +189,16 @@ var pull = function(doc,params) {
 }
 
 function filterOut(list, toPull) {
+  var matchesItemToPull = _.matches(toPull)
+
   return _.filter(list, function(item) {
-    return !_.matches(toPull, item)
+    var checks = [_.isNumber, _.isBoolean, _.isString]
+    for (var check in checks) {
+      if (checks[check](toPull) || checks[check](item)) {
+        return toPull !== item
+      }
+    }
+    return !matchesItemToPull(item)
   })
 }
 
@@ -299,7 +307,7 @@ if (require.main === module) {
   )
 }
 //console.log(JSON.stringify(push([{a:3,b:4},{c:3,b:5,d:{f:[{a:2},{a:3,b:{v:2}}]}}],{_path:[{b:5},'d','f',{a:3},'c'],values:[2,3]})))
-console.log(push({x:2},{x: [5, 3]}))
-console.log(unset({x:{y:2,g:{}}, y: 2}, 'x'))
+//console.log(push({x:2},{x: [5, 3]}))
+//console.log(unset({x:{y:2,g:{}}, y: 2}, 'x'))
 //console.log(JSON.stringify(push({x:{y:2,g:{}}},{_path:['x','g','h'],values:[3,2]})))
 //console.log(push({x:{y:2,g:[]}},{_path:['x','g'],value:3}))
