@@ -93,7 +93,7 @@ module.exports = function(params) {
    @param doc
    @param params They can come in two forms
         {nested,value} : The nested path of keys will be traversed within the doc to set the value at leaf
-        (attrs} : All the attributes in attrs Object are directly copied to doc
+        (keyVal pairs} : All the attributes in attrs Object are directly copied to doc
  */
 var set = function(doc,params,force) {
 
@@ -119,19 +119,24 @@ var set = function(doc,params,force) {
 /**
    @param doc
    @param params They can come in two forms
-        _path : The nested path of keys will be traversed within the doc to set the value at leaf
-        [attrs] : All the attributes in attrs Object are directly copied to doc
+        _path : The nested path of keys will be traversed within the doc to unset the leaf key
+        [attrs] : Array of the top level fields, if top level fields are to unset 
  */
 var unset = function(doc,params) {
 
   if (params._path) {//is array of keys (path) to traverse depth wise in the doc
 
     var keys = params._path
-    var nested = get.last_parent(doc, keys)
+    var nested
+    try { 
+      nested = get.last_parent(doc,keys)
+    } catch(err) {
+      return
+    }
     var lastKey = keys[keys.length - 1].key || keys[keys.length -1]
     delete nested[lastKey]
 
-  } else {//is (potentially multiple) attributes to copy
+  } else {//is (potentially multiple) attributes to unset 
 
     _.each(params, function(field) {
 
@@ -151,31 +156,42 @@ var unset = function(doc,params) {
 var pull = function(doc,params) {
   if (params._path) {
     var keys = params._path
-    var nested = get.last_parent(doc,keys)
+    var nested
+    try { 
+      nested = get.last_parent(doc,keys)
+    } catch(err) {
+      return
+    }
     var lastKey = keys[keys.length - 1].key || keys[keys.length - 1]
     if (!nested || !nested[lastKey]) {
       return
     }
     if (params._value) {//Push the single element
-      nested[lastKey] = _.without(nested[lastKey], params._value)
+      nested[lastKey] = filterOut(nested[lastKey], params._value)
     }
     else if (params._values) {//Push the array of elements
       _.each(params._values, function(value) {
-        nested[lastKey] = _.without(nested[lastKey], value)
+        nested[lastKey] = filterOut(nested[lastKey], value)
       })
     }
   } else { //These are single depth keys/attrs to be set in the doc
     _.each(_.keys(params), function(field) {
       if (!_.isArray(params[field])) {
-        doc[field] = _.wihtout(doc[field], params[field]) 
+        doc[field] = filterOut(doc[field], params[field]) 
       } else {
         _.each(params[field], function(value) {
-          doc[field] = _.without(doc[field], value)
+          doc[field] = filterOut(doc[field], value)
         })
       }
     })
   }
   return doc
+}
+
+function filterOut(list, toPull) {
+  return _.filter(list, function(item) {
+    return !_.matches(toPull, item)
+  })
 }
 
 function addToSet(doc, params, force) {
@@ -272,19 +288,18 @@ module.exports.unset = unset
 if (require.main === module) {
   console.log(
     JSON.stringify(
-      push(
-        [{a: 3,b: 4, x: 6},{c: 3,b: 5,d: {f: ['1', '2']}}],
+      addToSet(
+        {_source: {}},
         {
-            _path: [{b:5}, 'd', 'f'],
-            _values: ['2', '4', '1'] 
+            _source:  ['2', '4', '1'] 
         },
-        true,true
+        true
       )
     )
   )
 }
 //console.log(JSON.stringify(push([{a:3,b:4},{c:3,b:5,d:{f:[{a:2},{a:3,b:{v:2}}]}}],{_path:[{b:5},'d','f',{a:3},'c'],values:[2,3]})))
-//console.log(set({x:2},{x:5}))
-//console.log(set({x:{y:2,g:{}}},{_path:['x','g','h'],value:3}))
+console.log(push({x:2},{x: [5, 3]}))
+console.log(unset({x:{y:2,g:{}}, y: 2}, 'x'))
 //console.log(JSON.stringify(push({x:{y:2,g:{}}},{_path:['x','g','h'],values:[3,2]})))
 //console.log(push({x:{y:2,g:[]}},{_path:['x','g'],value:3}))
