@@ -1,4 +1,6 @@
-# js-object-updater
+js-object-updater
+=================
+
 Set, unset, push, addToSet, pull at a deep path in a JS hash (or an array).
 
 * Mutates objects in memory
@@ -12,74 +14,94 @@ Set, unset, push, addToSet, pull at a deep path in a JS hash (or an array).
   updater({
     doc: objectToBeUpdated,
     force: true, //Default false. Whether to force create the (possibly deep) paths during this update, if they don't exist
-    update: {
-      <command>: [],  // Instructions
-      <commandB>: {},  // Single instruction 
+    update: {//Can run multiple commands in one call
+      <command>: [],  // Can give instructions for a command
+      <commandB>: {},  // Can give single instruction for a command
     }
   })
 ```
 
+###How to use push, addToSet, pull commands
 
-###Format of set, push, addToSet, pull commands
+
 ``` Javascript
 {
-  <commandA>: {     // Where command can be either of set, push, addToSet, pull
+  //Run one instruction against a command
+  <commandA>: {
 
-    _path: ['deep nested path', 'leading to an array field', {'arrayItemsFieldX': 'should match this value'}, 'within that item', 'fieldY', 'and so on and so forth'],
-    _value: 'the value to be set, pushed, pulled, addedToSet'
+    _path: ['deep', 'nested', 'array', {'arrayItemsFieldX': 'should match this value', 'arrayFieldY': 'should be this'}, 'so on and so forth'],    // _path is always expected to be an array
+    _value: 'a single value to be pushed, pulled, addedToSet'
   },
 
-  <commandB>: [     // Use array of instructions if they are more than one instructions against one update command
+  //Run multiple instructions against a command
+  <commandB>: [
 
     {
-      _path: ['deep', 'nested', 'path'], //_path is always expected to be an array
-      _value: 'the value you want to set, pull, push, addToSet'
-    },
-    {
-      _path: ['deep', 'nested', 'path'],    // _path is always expected to be an array
+      _path: ['deep', 'nested', 'path'],
       _values: ['any value A', 'some value B']    // Specify _values for dealing with a list of values one by one
     },
-  ],
 
-  <commandC>: [
+    {
+      _path: ['deep', 'nested', 'path'],
+      _value: ['any value A', 'some value B']     // Since we are saying _value now, entire array as a single Object will be pushed, pulled, addedToSet 
+    },
 
     {     //For updating top level fields in the object, just specifying <key>:<val> pairs works
 
       'topLevelFieldA': 'valueA for top Level field',
-      'topLevelFieldB': ['valueB', 'valueC'] //In case commandC is pull, addToSet or push, each value will be dealt one by one, independently. In case of set, the whole array will replace previous value of topLevelFieldB
-    },
-    {     // You can mix and match with _path style in the array of instructions, as need be
 
-      _path: ['deep', 'nested', 'path'], //_path is always expected to be an array
-      _values: ['any value A', 'some value B'] //Specify _values for dealing with a list of values one by one
+      'topLevelFieldB': ['valueB', 'valueC']      //Each value in array will be treated independently. Same as _values
     },
   ]
 }
 ```
 
-###Format for unset
+###How to use set
+
+Same way as addToSet, push, pull except that \_value must be used. \_values does not make any sense in case of set on a field, and is hence ignored 
+
+```Javascript
+{
+  set: [ 
+    {topLevelField: 'value'} , //A single top level field to be unset
+
+    {
+      _path: ['fieldA', 'nestedFieldB', 'arrayFieldInB', {'itemField1': 'matches this value'}, 'fieldZ of matched array item']
+      _value: '65'
+    }
+  ]
+} 
+```
+
+###How to use unset
 Same as others, except that there is no concept/use of _value/_values in unset. We simply want to remove a field from an object
 
 ```Javascript
-  //  Give an array if multiple instructions are to be run against unset command
+{
   unset: [ 
-    'topLevelField',
+    'topLevelField', //A single top level field to be unset
+
+    ['topLevelFieldB', 'topLevelFieldC'] //A list of top level fields to be unset
+
     {_path: ['fieldA', 'nestedFieldB', 'arrayFieldInB', {'itemField1': 'matches this value'}, 'fieldZ of matched array item']}
-    ['topLevelFieldB', 'topLevelFieldC'] //Give an array of fields to unset, if they are top level fields
   ]
-  
+} 
 ```
 
-## API example
+##Examples
 
+In these examples we will mutate a single object in steps, demonstrating each update command one by one  
+All the different kind of update commands can be executed in one single API call also
+
+###Setup
 ```Javascript
-var updater = require('/home/master/work/code/js-object-updater')
-var _ = require('lodash')
+
+var updater = require('js-object-updater')
 
 var objectToUpdate = { //Can be an array or object
   aTopLevelField: 'foo',
   topLevelArray: [2, 4, {a: 3}],
-  arr1: [
+  anotherTopLevelArray: [
     {
       someField: 3, 
       arr2: [
@@ -99,56 +121,97 @@ var objectToUpdate = { //Can be an array or object
           a: 23, 
           f: 42, 
           x: {
-            fieldA: 'some other random value'
-          }
+            fieldA: 'some other random value',
+            arrC: [42, 56]
+          },
         }
       ]
     }
   ]
 }
-var originalObjectToUpdate = _.cloneDeep(objectToUpdate)
+```
+####Unset
 
+```Javascript
 updater(
+  {
+    doc: objectToUpdate,
+    force:true,// As far as unset command is concerned, force true or false does not make any difference
+    update: {
+      unset: [
+        {
+          _path: ["anotherTopLevelArray", {someField: 3}, "arr2", {a: 2, f: 4}, "x"]
+        },
+        ['aTopLevelField'] //The array of top level fields
+      ],
+    }
+  }
+)
+console.log('after unset', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[2,4,{"a":3}],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]}}]}]}
+```
 
+###Set
+```Javascript
+updater(
   {
     doc: objectToUpdate,
     force:true,//Whether to force creation of nested path if it does not fully exist
     update: {
-      unset: [
-        {
-          _path: ["arr1", {someField: 3}, "arr2", {a: 2, f: 4}, "x"]
-        },
-        ['topLevelField'] //The array of top level fields
-      ],
       set:[
         {
-          _path: ["arr1", {someField: 4}, "arr2", {a:23, f:42}, "x"],
-          _value: 6.5 //Will replace previous value which was {fieldA: 'some random value'}
+          _path: ["anotherTopLevelArray", {someField: 4}, "arr2", {a:23, f:42}, "foo"],
+          _value: 6.5 
         },
         {
-          someTopLevelField: 42,
-          someOtherTopLevelField: [42, 65]
+          someOtherTopLevelField: 42,
+          anotherTopLevelField: [42, 65]
         }
       ],
+    }
+  }
+)
+console.log('after set', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[2,4,{"a":3}],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
+```
+
+###Pull
+```Javascript
+updater(
+  {
+    doc: objectToUpdate,
+    force:true, // In pull, force true or false does not make any difference
+    update: {
       pull:[
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4},"x"],
-          _value: {a:2}
+          _path: ["anotherTopLevelArray", {someField:3}, "arr2"],
+          _value: {a: 2} //Remove the objects from nested path where a:2}
         },
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4},"x"],
-          _values: [{a:2}, {a:4}]
+          _path: ["anotherTopLevelArray", {someField: 3}, "arr2", {a: 23,f: 42},"arrC"],
+          _values: [42, 56] //Should have no effect since these do not exist at x in the deep path specified above
         },
         {
-          someArray: [6.5, 2.3] //Pull 6.5 and 2.3 one by one from array called yy at top level of object
+          topLevelArray: 2 //Pull just 3 from topLevelArray
         },
         {
-          topLevelArray: 3 //Pull just 3 from topLevelArray
-        },
-        {
-          topLevelArray: [{a: 23}, 4] //Pull out one object where a:23 and one object where the number is 4
+          topLevelArray: [{a: 3}, 4] //Pull out one object where a:23 and one object where the number is 4
         },
       ],
+    }
+  }
+)
+console.log('after pull', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[],"anotherTopLevelArray":[{"someField":3,"arr2":[]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[]}
+```
+
+###Push
+```Javascript
+updater(
+  {
+    doc: objectToUpdate,
+    force:true, 
+    update: {
       push:[
         {
           topLevelArray: 21 //Will concat 21 to list of vlaues at topLevelArray. If topLevelArrat does not exist or is not an array, will make it an array
@@ -157,19 +220,43 @@ updater(
           topLevelArray: [5, 3] //Will push 5 and 3 to topLevelArray 
         },
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4},"x"], //Do a deep push at x after traversing two arrays
+          _path: ["anotherTopLevelArray",{someField:3},"arr2",{a:2,f:4},"x"], //Do a deep push at x after traversing two arrays
           _values: [6.5, 3.4] //Push both these values one by one
         },
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4},"x"], //Do a deep push at x after traversing two arrays
-          _value: 6.5 //Set a single value
+          _path: ["anotherTopLevelArray",{someField:3},"arr2",{a:2,f:4}, "arrC"], //Do a deep push at x after traversing two arrays
+          _value: 6565 //Set a single value
         }
       ]
     }
-
   }
 )
+console.log('after push', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[21,5,3],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4,"x":[6.5,3.4],"arrC":[6565]}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
+```
 
-console.log(JSON.stringify(originalObjectToUpdate))
-console.log(JSON.stringify(objectToUpdate))
+###addToSet
+```Javascript
+updater(
+  {
+    doc: objectToUpdate,
+    force:true, 
+    update: {
+      addToSet:[
+        {
+          topLevelArray: 21 //Will not concat 21 to list of vlaues at topLevelArray as the value already exists
+        },
+        { 
+          topLevelArray: [5, 32] //Will push 32 to topLevelArray. 5 will be ignored
+        },
+        {
+          _path: ["anotherTopLevelArray",{someField:3},"arr2",{a:2,f:4}, "arrC"],
+          _value: 6565 //Ignored
+        }
+      ]
+    }
+  }
+)
+console.log('after addToSet', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[21,5,3,32],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4,"x":[6.5,3.4],"arrC":[6565]}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
 ```

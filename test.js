@@ -1,4 +1,3 @@
-
 //In this example we will mutate a single object in steps, demonstrating each update method
 //Note: all the different kind of update commands can be executed in one single API call also
 //You can copy paste and run this yourself
@@ -9,7 +8,7 @@ var _ = require('lodash')
 var objectToUpdate = { //Can be an array or object
   aTopLevelField: 'foo',
   topLevelArray: [2, 4, {a: 3}],
-  arr1: [
+  anotherTopLevelArray: [
     {
       someField: 3, 
       arr2: [
@@ -46,17 +45,15 @@ updater(
     update: {
       unset: [
         {
-          _path: ["arr1", {someField: 3}, "arr2", {a: 2, f: 4}, "x"]
+          _path: ["anotherTopLevelArray", {someField: 3}, "arr2", {a: 2, f: 4}, "x"]
         },
         ['aTopLevelField'] //The array of top level fields
       ],
-      //set:[], Demonstrated separately below for brevity. But can combine multiple commands into one API call
-      //pull: {} or []
     }
   }
 )
-console.log(JSON.stringify(objectToUpdate))
-//{"topLevelArray":[2,4,{"a":3}],"arr1":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]}}]}]}
+console.log('after unset', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[2,4,{"a":3}],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]}}]}]}
 
 //Set
 updater(
@@ -66,8 +63,8 @@ updater(
     update: {
       set:[
         {
-          _path: ["arr1", {someField: 4}, "arr2", {a:23, f:42}, "foo"],
-          _value: 6.5 
+          _path: ["anotherTopLevelArray", {someField: 4}, "arr2", {a:23, f:42}, "foo"],
+          _value: [6.5, 2.3] 
         },
         {
           someOtherTopLevelField: 42,
@@ -77,8 +74,9 @@ updater(
     }
   }
 )
-console.log(JSON.stringify(objectToUpdate))
-//{"topLevelArray":[2,4,{"a":3}],"arr1":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
+console.log('after set', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[2,4,{"a":3}],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
+
 
 //Pull
 updater(
@@ -88,11 +86,11 @@ updater(
     update: {
       pull:[
         {
-          _path: ["arr1", {someField:3}, "arr2", "f"],
+          _path: ["anotherTopLevelArray", {someField:3}, "arr2"],
           _value: {a: 2} //Remove the objects from nested path where a:2}
         },
         {
-          _path: ["arr1", {someField: 3}, "arr2", {a: 23,f: 42},"arrC"],
+          _path: ["anotherTopLevelArray", {someField: 3}, "arr2", {a: 23,f: 42},"arrC"],
           _values: [42, 56] //Should have no effect since these do not exist at x in the deep path specified above
         },
         {
@@ -105,9 +103,8 @@ updater(
     }
   }
 )
-console.log(JSON.stringify(objectToUpdate))
-//{"topLevelArray":[{"a":3}],"arr1":[{"someField":3,"arr2":[{"a":2,"f":4}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
-
+console.log('after pull', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[],"anotherTopLevelArray":[{"someField":3,"arr2":[]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[]}
 //Push
 updater(
   {
@@ -122,19 +119,20 @@ updater(
           topLevelArray: [5, 3] //Will push 5 and 3 to topLevelArray 
         },
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4},"x"], //Do a deep push at x after traversing two arrays
+          _path: ["anotherTopLevelArray",{someField:3},"arr2",{a:2,f:4},"x"], //Do a deep push at x after traversing two arrays
           _values: [6.5, 3.4] //Push both these values one by one
         },
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4}, "arrC"], //Do a deep push at x after traversing two arrays
+          _path: ["anotherTopLevelArray",{someField:3},"arr2",{a:2,f:4}, "arrC"], //Do a deep push at x after traversing two arrays
           _value: 6565 //Set a single value
         }
       ]
     }
   }
 )
-console.log(JSON.stringify(objectToUpdate))
-//{"topLevelArray":[{"a":3},21,5,3],"arr1":[{"someField":3,"arr2":[{"a":2,"f":4,"x":[6.5,3.4],"arrC":[6565]}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
+console.log('after push', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[21,5,3],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4,"x":[6.5,3.4],"arrC":[6565]}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
+
 
 //addToSet
 updater(
@@ -150,26 +148,12 @@ updater(
           topLevelArray: [5, 32] //Will push 32 to topLevelArray. 5 will be ignored
         },
         {
-          _path: ["arr1",{someField:3},"arr2",{a:2,f:4}, "arrC"],
-          _value: 6565 //Ignored
+          _path: ["anotherTopLevelArray",{someField:3},"arr2",{a:2,f:4}, "arrC"],
+          _value: [6565, 45] //Ignored
         }
       ]
     }
   }
 )
-console.log(JSON.stringify(objectToUpdate))
-//{"topLevelArray":[{"a":3},21,5,3,32],"arr1":[{"someField":3,"arr2":[{"a":2,"f":4,"x":[6.5,3.4],"arrC":[6565]}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
-//
-var o = {a: [{d: 3}, {d:3, f: 3}, {d:2}, {e: 3}]}
-updater(
-  {
-    doc: o, 
-    force:true, // In pull, force true or false does not make any difference
-    update: {
-      pull: [{
-        a: [{e: 3}]
-      }]
-    }
-  }
-)
-console.log(o)
+console.log('after addToSet', JSON.stringify(objectToUpdate))
+//{"topLevelArray":[21,5,3,32],"anotherTopLevelArray":[{"someField":3,"arr2":[{"a":2,"f":4,"x":[6.5,3.4],"arrC":[6565]}]},{"someField":4,"arr2":[{"a":23,"f":42,"x":{"fieldA":"some other random value","arrC":[42,56]},"foo":6.5}]}],"someOtherTopLevelField":42,"anotherTopLevelField":[42,65]}
