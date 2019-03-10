@@ -123,7 +123,6 @@ var set = function(doc,params,force) {
         [attrs] : Array of the top level fields, if top level fields are to unset 
  */
 var unset = function(doc,params) {
-
   if (params._path) {//is array of keys (path) to traverse depth wise in the doc
 
     var keys = params._path
@@ -136,7 +135,8 @@ var unset = function(doc,params) {
     var lastKey = keys[keys.length - 1].key || keys[keys.length -1]
     delete nested[lastKey]
 
-  } else {//is (potentially multiple) attributes to unset 
+  } else {
+		params = _.flatten([params])
 
     _.each(params, function(field) {
 
