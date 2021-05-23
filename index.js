@@ -42,7 +42,8 @@
 */
 //var longjon = require('longjohn')
 var _ = require('lodash')
-var get = require('./get')
+var get = require('./get');
+var deepEqual = require('deep-equal');
 module.exports = function(params) {
   var doc = params.doc
   if (!doc) {
@@ -189,16 +190,16 @@ var pull = function(doc,params) {
 }
 
 function filterOut(list, toPull) {
-  var matchesItemToPull = _.matches(toPull)
-
+ 
   return _.filter(list, function(item) {
     var checks = [_.isNumber, _.isBoolean, _.isString]
     for (var check in checks) {
       if (checks[check](toPull) || checks[check](item)) {
         return toPull !== item
       }
-    }
-    return !matchesItemToPull(item)
+    };
+    const toMatchFromItem = _.pick(item, Object.keys(toPull));
+    return !deepEqual(toMatchFromItem, toPull);
   })
 }
 
