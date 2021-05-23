@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/Mindgreppers/js-object-updater#readme",
   "dependencies": {
-    "js-object-updater": "^2.0.5",
+    "deep-equal": "^2.0.5",
     "lodash": "^3.10.1"
   }
 }
